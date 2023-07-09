@@ -1,0 +1,35 @@
+# Ignore dependencies
+node_modules/
+
+# Ignore logs and debugging files
+logs/
+*.log
+npm-debug.log*
+
+# Ignore built files
+build/
+dist/
+out/
+
+# Ignore environment-specific settings
+.env
+.env.*
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore npm package lock file
+package-lock.json
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
+
+# Ignore testing files and reports
+coverage/
+*.spec.js
+
+# Ignore any sensitive or private information
+config.js
+secrets.js

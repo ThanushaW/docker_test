@@ -1,9 +1,13 @@
 let express = require('express');
 let path = require('path');
 let fs = require('fs');
-let MongoClient = require('mongodb').MongoClient;
+const { MongoClient, ObjectId } = require('mongodb');
 let bodyParser = require('body-parser');
 let app = express();
+const port = 3000;
+const mongoUrl = 'mongodb://admin:password@52.146.33.108:27017';
+const databaseName = 'user-account';
+let mongoClientOptions = { useNewUrlParser: true, useUnifiedTopology: true };
 
 app.use(bodyParser.urlencoded({
   extended: true
@@ -20,61 +24,102 @@ app.get('/profile-picture', function (req, res) {
   res.end(img, 'binary');
 });
 
-// use when starting application locally
-let mongoUrlLocal = "mongodb://admin:password@localhost:27017";
 
-// use when starting application as docker container
-let mongoUrlDocker = "mongodb://admin:password@mongodb";
-
-// pass these options to mongo client connect request to avoid DeprecationWarning for current Server Discovery and Monitoring engine
-let mongoClientOptions = { useNewUrlParser: true, useUnifiedTopology: true };
-
-// "user-account" in demo with docker. "my-db" in demo with docker-compose
-let databaseName = "user-account";
-
-app.post('/update-profile', function (req, res) {
-  let userObj = req.body;
-
-  MongoClient.connect(mongoUrlLocal, mongoClientOptions, function (err, client) {
-    if (err) throw err;
-
-    let db = client.db(databaseName);
-    userObj['userid'] = 1;
-
-    let myquery = { userid: 1 };
-    let newvalues = { $set: userObj };
-
-    db.collection("users").updateOne(myquery, newvalues, {upsert: true}, function(err, res) {
-      if (err) throw err;
-      client.close();
-    });
-
-  });
-  // Send response
-  res.send(userObj);
-});
-
-app.get('/get-profile', function (req, res) {
-  let response = {};
-  // Connect to the db
-  MongoClient.connect(mongoUrlLocal, mongoClientOptions, function (err, client) {
-    if (err) throw err;
-
-    let db = client.db(databaseName);
-
-    let myquery = { userid: 1 };
-
-    db.collection("users").findOne(myquery, function (err, result) {
-      if (err) throw err;
-      response = result;
-      client.close();
-
-      // Send response
-      res.send(response ? response : {});
+// GET request to fetch user by ID
+app.get('/users/:id', (req, res) => {
+    const userId = req.params.id;
+  
+    MongoClient.connect(mongoUrl, (err, client) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Failed to connect to the database');
+        return;
+      }
+  
+      const db = client.db(databaseName);
+      const usersCollection = db.collection('users');
+  
+      usersCollection.findOne({ _id: ObjectId(userId) }, (err, user) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send('Failed to fetch user from the database');
+          return;
+        }
+  
+        if (!user) {
+          res.status(404).send('User not found');
+          return;
+        }
+  
+        res.json(user);
+      });
     });
   });
-});
 
-app.listen(3000, function () {
-  console.log("app listening on port 3000!");
-});
+// POST request to create a new user
+app.post('/users', (req, res) => {
+    const newUser = req.body;
+  
+    MongoClient.connect(mongoUrl, (err, client) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Failed to connect to the database');
+        return;
+      }
+  
+      const db = client.db(databaseName);
+      const usersCollection = db.collection('users');
+  
+      usersCollection.insertOne(newUser, (err, result) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send('Failed to create a new user');
+          return;
+        }
+  
+        res.status(201).send('User created successfully');
+      });
+    });
+  });
+  
+  // PUT request to update an existing user
+  app.put('/users/:id', (req, res) => {
+    const userId = req.params.id;
+    const updatedUser = req.body;
+  
+    MongoClient.connect(mongoUrl, (err, client) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send('Failed to connect to the database');
+        return;
+      }
+  
+      const db = client.db(databaseName);
+      const usersCollection = db.collection('users');
+  
+      usersCollection.updateOne(
+        { _id: ObjectId(userId) },
+        { $set: updatedUser },
+        (err, result) => {
+          if (err) {
+            console.error(err);
+            res.status(500).send('Failed to update the user');
+            return;
+          }
+  
+          if (result.modifiedCount === 0) {
+            res.status(404).send('User not found');
+            return;
+          }
+  
+          res.send('User updated successfully');
+        }
+      );
+    });
+  });
+  
+
+// Start the server
+app.listen(port, () => {
+    console.log(`Server is listening on port ${port}`);
+  });

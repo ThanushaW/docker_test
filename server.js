@@ -23,10 +23,10 @@ app.get('/profile-picture', function (req, res) {
 app.post('/update-profile', function (req, res) {
   var userObj = req.body;
 
-  MongoClient.connect("mongodb://admin:password@mongodb", function (err, client) {
+  MongoClient.connect("mongodb://admin:password@localhost:27017", function (err, client) {
     if (err) throw err;
 
-    var db = client.db('my-db');
+    var db = client.db('user-account');
     userObj['userid'] = 1;
     
     var myquery = { userid: 1 };
@@ -45,7 +45,7 @@ app.post('/update-profile', function (req, res) {
 app.get('/get-profile', function (req, res) {
   var response = {};
   // Connect to the db
-  MongoClient.connect("mongodb://admin:password@mongodb", function (err, client) {
+  MongoClient.connect("mongodb://admin:password@localhost:27017", function (err, client) {
     if (err) throw err;
 
     var db = client.db('my-db');
